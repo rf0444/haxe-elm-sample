@@ -5,7 +5,7 @@ import lib.elm.Signal;
 
 import chat.Action;
 import chat.Model;
-import chat.Task;
+import chat.TaskExecutor;
 import chat.Update;
 import chat.View;
 
@@ -17,8 +17,9 @@ class Main {
 			view: View.view
 		});
 		App.renderToBody(app.main());
+		var exec = new TaskExecutor();
 		app.task().stream().assign(function(task) {
-			Tasks.exec(app.address(), task);
+			exec.exec(app.address(), task);
 		});
 		app.address().send(Init);
 	}

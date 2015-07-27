@@ -1,14 +1,9 @@
 package chat;
 
+import lib.MqttClient.MqttInfo;
+
 import chat.Model;
 
-typedef MqttInfo = {
-	host: String,
-	port: Int,
-	clientId: String,
-	username: String,
-	password: String
-}
 enum Action {
 	Init;
 	ConnectionFormInput(f: ConnectionForm -> ConnectionForm);

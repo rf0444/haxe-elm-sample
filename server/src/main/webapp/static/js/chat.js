@@ -90,40 +90,6 @@ HxOverrides.substr = function(s,pos,len) {
 	return s.substr(pos,len);
 };
 Math.__name__ = true;
-var Reflect = function() { };
-Reflect.__name__ = true;
-Reflect.field = function(o,field) {
-	try {
-		return o[field];
-	} catch( e ) {
-		if (e instanceof js__$Boot_HaxeError) e = e.val;
-		return null;
-	}
-};
-Reflect.setField = function(o,field,value) {
-	o[field] = value;
-};
-Reflect.fields = function(o) {
-	var a = [];
-	if(o != null) {
-		var hasOwnProperty = Object.prototype.hasOwnProperty;
-		for( var f in o ) {
-		if(f != "__id__" && f != "hx__closures__" && hasOwnProperty.call(o,f)) a.push(f);
-		}
-	}
-	return a;
-};
-Reflect.copy = function(o) {
-	var o2 = { };
-	var _g = 0;
-	var _g1 = Reflect.fields(o);
-	while(_g < _g1.length) {
-		var f = _g1[_g];
-		++_g;
-		Reflect.setField(o2,f,Reflect.field(o,f));
-	}
-	return o2;
-};
 var Std = function() { };
 Std.__name__ = true;
 Std.string = function(s) {
@@ -178,8 +144,9 @@ chat_Main.__name__ = true;
 chat_Main.main = function() {
 	var app = lib_elm_App.create({ model : chat_Models.init(), update : chat_Update.update, view : chat_View.view});
 	lib_elm_App.renderToBody(app.main());
+	var exec = new chat_TaskExecutor();
 	app.task().stream().assign(function(task) {
-		chat_Tasks.exec(app.address(),task);
+		exec.exec(app.address(),task);
 	});
 	app.address().send(chat_Action.Init);
 };
@@ -192,9 +159,39 @@ chat_Models.__name__ = true;
 chat_Models.init = function() {
 	return chat_Model.NotConnected({ form : { name : ""}});
 };
-var chat_Tasks = function() { };
-chat_Tasks.__name__ = true;
-chat_Tasks.exec = function(address,task) {
+var chat_TaskExecutor = function() {
+	this.mqtt = null;
+};
+chat_TaskExecutor.__name__ = true;
+chat_TaskExecutor.prototype = {
+	exec: function(address,task) {
+		var _g = this;
+		switch(task[1]) {
+		case 0:
+			lib_Util.ajax({ method : "GET", url : "/api/mqtt", success : function(info) {
+				address.send(chat_Action.MqttInfoResponse(info));
+			}, error : function(e) {
+				address.send(chat_Action.ResponseError(e));
+			}});
+			break;
+		case 1:
+			var info1 = task[2];
+			lib_MqttClient.connect(info1,function(client) {
+				_g.mqtt = client;
+				client.subscribe("/chat",function() {
+					address.send(chat_Action.Connected);
+				});
+			},function(message) {
+				var post = JSON.parse(message);
+				address.send(chat_Action.PostArrived(post));
+			});
+			break;
+		case 2:
+			var post1 = task[2];
+			if(this.mqtt != null) this.mqtt.send("/chat",JSON.stringify(post1));
+			break;
+		}
+	}
 };
 var chat_Update = function() { };
 chat_Update.__name__ = true;
@@ -208,17 +205,15 @@ chat_Update.update = function(action,model) {
 			case 1:
 				var state = _g_model[2];
 				var f = _g_action[2];
-				var next = chat_Model.NotConnected(lib_Util.copy(state,function(state1) {
-					state1.form = f(state1.form);
-				}));
+				var next = chat_Model.NotConnected(lib_Util.copy(state,{ form : f(state.form)}));
 				return chat_Update.result(next,[]);
 			case 2:
-				var state2 = _g_model[2];
+				var state1 = _g_model[2];
 				switch(_g_model[2].form.name) {
 				case "":
 					return chat_Update.result(model,[]);
 				default:
-					var next1 = chat_Model.Connecting({ name : state2.form.name});
+					var next1 = chat_Model.Connecting({ name : state1.form.name});
 					return chat_Update.result(next1,[chat_Task.RequestMqtt]);
 				}
 				break;
@@ -232,8 +227,11 @@ chat_Update.update = function(action,model) {
 				var next2 = chat_Model.NotConnected({ form : { name : ""}});
 				return chat_Update.result(next2,[]);
 			case 3:
-				var state3 = _g_model[2];
+				var state2 = _g_model[2];
 				var info = _g_action[2];
+				return chat_Update.result(model,[chat_Task.MqttConnect(info)]);
+			case 5:
+				var state3 = _g_model[2];
 				var next3 = chat_Model.Connected({ name : state3.name, form : { content : ""}, posts : []});
 				return chat_Update.result(next3,[]);
 			default:
@@ -245,30 +243,24 @@ chat_Update.update = function(action,model) {
 			case 7:
 				var state4 = _g_model[2];
 				var f1 = _g_action[2];
-				var next4 = chat_Model.Connected(lib_Util.copy(state4,function(state5) {
-					state5.form = f1(state5.form);
-				}));
+				var next4 = chat_Model.Connected(lib_Util.copy(state4,{ form : f1(state4.form)}));
 				return chat_Update.result(next4,[]);
 			case 8:
-				var state6 = _g_model[2];
+				var state5 = _g_model[2];
 				switch(_g_model[2].form.content) {
 				case "":
 					return chat_Update.result(model,[]);
 				default:
 					var time = _g_action[2];
-					var next5 = chat_Model.Connected(lib_Util.copy(state6,function(state7) {
-						state7.form.content = "";
-					}));
-					var post = { user : state6.name, time : time, content : state6.form.content};
+					var next5 = chat_Model.Connected(lib_Util.copy(state5,{ form : lib_Util.copy(state5.form,{ content : ""})}));
+					var post = { user : state5.name, time : time, content : state5.form.content};
 					return chat_Update.result(next5,[chat_Task.MqttSend(post)]);
 				}
 				break;
 			case 6:
-				var state8 = _g_model[2];
+				var state6 = _g_model[2];
 				var post1 = _g_action[2];
-				var next6 = chat_Model.Connected(lib_Util.copy(state8,function(state9) {
-					state9.posts.unshift(post1);
-				}));
+				var next6 = chat_Model.Connected(lib_Util.copy(state6,{ posts : lib_Util.cons(post1,state6.posts)}));
 				return chat_Update.result(next6,[]);
 			default:
 				return chat_Update.result(model,[]);
@@ -316,7 +308,7 @@ chat_View.userInput = function(address,state) {
 	});
 };
 chat_View.showUser = function(user) {
-	return chat_View.d.h("div",{ style : { textAlign : "center"}},["user: " + user]);
+	return chat_View.d.h("div",{ style : { textAlign : "right"}},["user: " + user]);
 };
 chat_View.postForm = function(address,state) {
 	return chat_View.singleForm(address,state.form.content,"メッセージ","送信",function(value) {
@@ -333,7 +325,7 @@ chat_View.postList = function(posts) {
 		return chat_View.d.h("tr",[chat_View.d.h("td",[post.user]),chat_View.d.h("td",[post.content]),chat_View.d.h("td",[chat_View.timeToString(post.time)])]);
 	};
 	var body = chat_View.d.h("tbody",posts.map(toTr));
-	return chat_View.d.h("table",[head,body]);
+	return chat_View.d.h("table.table",[head,body]);
 };
 chat_View.timeToString = function(time) {
 	return DateTools.format((function($this) {
@@ -439,12 +431,53 @@ lib_Bacons.bus = function() {
 	var bacon = lib_Bacons.Bacon;
 	return new bacon.Bus();
 };
+var lib_MqttClient = function(client) {
+	this.client = client;
+};
+lib_MqttClient.__name__ = true;
+lib_MqttClient.connect = function(info,onConnect,onMessageArrived) {
+	var client = lib_MqttClient.createClient(info);
+	client.onMessageArrived = function(message) {
+		onMessageArrived(message.payloadString);
+	};
+	client.connect({ timeout : 3, userName : info.username, password : info.password, onSuccess : function() {
+		onConnect(new lib_MqttClient(client));
+	}});
+};
+lib_MqttClient.createClient = function(info) {
+	var f = function(x) { return new window.Paho.MQTT.Client(x.host, x.port, x.clientId); }
+	return f(info);
+};
+lib_MqttClient.createMesasge = function(message) {
+	var f = function(x) { return new window.Paho.MQTT.Message(x); }
+	return f(message);
+};
+lib_MqttClient.prototype = {
+	subscribe: function(destination,onSuccess) {
+		this.client.subscribe(destination,{ qos : 0, onSuccess : onSuccess});
+	}
+	,send: function(destination,message) {
+		if(this.client == null) return;
+		var m = lib_MqttClient.createMesasge(message);
+		m.destinationName = destination;
+		m.qos = 0;
+		m.retained = false;
+		this.client.send(m);
+	}
+};
 var lib_Util = function() { };
 lib_Util.__name__ = true;
-lib_Util.copy = function(x,modify) {
-	var ret = Reflect.copy(x);
-	modify(ret);
-	return ret;
+lib_Util.copy = function(x,ext) {
+	var jq = $;
+	return jq.extend({ },x,ext);
+};
+lib_Util.ajax = function(option) {
+	var jq = $;
+	jq.ajax(option);
+};
+lib_Util.cons = function(a,b) {
+	var f = function(a, b) { return Array.prototype.concat(a, b); }
+	return f(a,b);
 };
 var lib_elm_App = function(main,address,task) {
 	this.main_ = main;

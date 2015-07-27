@@ -1,2 +1,7 @@
 *.swp
 Thumbs.db
+
+/server/project/project
+/server/project/target
+/server/target
+/server/src/main/resources/application.conf

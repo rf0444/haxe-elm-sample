@@ -42,7 +42,7 @@ class View {
 		);
 	}
 	static function showUser(user: String): Dynamic {
-		return d.h("div", { style: { textAlign: "center" } }, [ 'user: ${user}' ]);
+		return d.h("div", { style: { textAlign: "right" } }, [ 'user: ${user}' ]);
 	}
 	static function postForm(address: Address<Action>, state: ConnectedState): Dynamic {
 		return singleForm(address, state.form.content, "メッセージ", "送信",
@@ -68,7 +68,7 @@ class View {
 			]);
 		};
 		var body = d.h('tbody', posts.map(toTr));
-		return d.h('table', [ head, body ]);
+		return d.h('table.table', [ head, body ]);
 	}
 	public static function timeToString(time: Int): String {
 		return DateTools.format(Date.fromTime(time), '%Y/%m/%d %H:%M:%S');
