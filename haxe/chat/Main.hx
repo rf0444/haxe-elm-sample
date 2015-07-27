@@ -16,11 +16,10 @@ class Main {
 			update: Update.update,
 			view: View.view
 		});
-		app.main().stream().assign(function(html) {
-			
-		});
+		App.renderToBody(app.main());
 		app.task().stream().assign(function(task) {
 			Tasks.exec(app.address(), task);
 		});
+		app.address().send(Init);
 	}
 }

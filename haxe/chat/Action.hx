@@ -10,6 +10,7 @@ typedef MqttInfo = {
 	password: String
 }
 enum Action {
+	Init;
 	ConnectionFormInput(f: ConnectionForm -> ConnectionForm);
 	Connect;
 	MqttInfoResponse(info: MqttInfo);

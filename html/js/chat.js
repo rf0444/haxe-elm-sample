@@ -1,19 +1,172 @@
 (function (console) { "use strict";
 var $estr = function() { return js_Boot.__string_rec(this,''); };
+function $extend(from, fields) {
+	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
+	for (var name in fields) proto[name] = fields[name];
+	if( fields.toString !== Object.prototype.toString ) proto.toString = fields.toString;
+	return proto;
+}
+var DateTools = function() { };
+DateTools.__name__ = true;
+DateTools.__format_get = function(d,e) {
+	switch(e) {
+	case "%":
+		return "%";
+	case "C":
+		return StringTools.lpad(Std.string(Std["int"](d.getFullYear() / 100)),"0",2);
+	case "d":
+		return StringTools.lpad(Std.string(d.getDate()),"0",2);
+	case "D":
+		return DateTools.__format(d,"%m/%d/%y");
+	case "e":
+		return Std.string(d.getDate());
+	case "F":
+		return DateTools.__format(d,"%Y-%m-%d");
+	case "H":case "k":
+		return StringTools.lpad(Std.string(d.getHours()),e == "H"?"0":" ",2);
+	case "I":case "l":
+		var hour = d.getHours() % 12;
+		return StringTools.lpad(Std.string(hour == 0?12:hour),e == "I"?"0":" ",2);
+	case "m":
+		return StringTools.lpad(Std.string(d.getMonth() + 1),"0",2);
+	case "M":
+		return StringTools.lpad(Std.string(d.getMinutes()),"0",2);
+	case "n":
+		return "\n";
+	case "p":
+		if(d.getHours() > 11) return "PM"; else return "AM";
+		break;
+	case "r":
+		return DateTools.__format(d,"%I:%M:%S %p");
+	case "R":
+		return DateTools.__format(d,"%H:%M");
+	case "s":
+		return Std.string(Std["int"](d.getTime() / 1000));
+	case "S":
+		return StringTools.lpad(Std.string(d.getSeconds()),"0",2);
+	case "t":
+		return "\t";
+	case "T":
+		return DateTools.__format(d,"%H:%M:%S");
+	case "u":
+		var t = d.getDay();
+		if(t == 0) return "7"; else if(t == null) return "null"; else return "" + t;
+		break;
+	case "w":
+		return Std.string(d.getDay());
+	case "y":
+		return StringTools.lpad(Std.string(d.getFullYear() % 100),"0",2);
+	case "Y":
+		return Std.string(d.getFullYear());
+	default:
+		throw new js__$Boot_HaxeError("Date.format %" + e + "- not implemented yet.");
+	}
+};
+DateTools.__format = function(d,f) {
+	var r = new StringBuf();
+	var p = 0;
+	while(true) {
+		var np = f.indexOf("%",p);
+		if(np < 0) break;
+		r.addSub(f,p,np - p);
+		r.add(DateTools.__format_get(d,HxOverrides.substr(f,np + 1,1)));
+		p = np + 2;
+	}
+	r.addSub(f,p,f.length - p);
+	return r.b;
+};
+DateTools.format = function(d,f) {
+	return DateTools.__format(d,f);
+};
+var HxOverrides = function() { };
+HxOverrides.__name__ = true;
+HxOverrides.substr = function(s,pos,len) {
+	if(pos != null && pos != 0 && len != null && len < 0) return "";
+	if(len == null) len = s.length;
+	if(pos < 0) {
+		pos = s.length + pos;
+		if(pos < 0) pos = 0;
+	} else if(len < 0) len = s.length + len - pos;
+	return s.substr(pos,len);
+};
 Math.__name__ = true;
-var chat_Action = { __ename__ : true, __constructs__ : ["ConnectionFormInput","Connect","MqttInfoResponse","ResponseError","Connected","PostArrived","PostFormInput","Post"] };
-chat_Action.ConnectionFormInput = function(f) { var $x = ["ConnectionFormInput",0,f]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
-chat_Action.Connect = ["Connect",1];
+var Reflect = function() { };
+Reflect.__name__ = true;
+Reflect.field = function(o,field) {
+	try {
+		return o[field];
+	} catch( e ) {
+		if (e instanceof js__$Boot_HaxeError) e = e.val;
+		return null;
+	}
+};
+Reflect.setField = function(o,field,value) {
+	o[field] = value;
+};
+Reflect.fields = function(o) {
+	var a = [];
+	if(o != null) {
+		var hasOwnProperty = Object.prototype.hasOwnProperty;
+		for( var f in o ) {
+		if(f != "__id__" && f != "hx__closures__" && hasOwnProperty.call(o,f)) a.push(f);
+		}
+	}
+	return a;
+};
+Reflect.copy = function(o) {
+	var o2 = { };
+	var _g = 0;
+	var _g1 = Reflect.fields(o);
+	while(_g < _g1.length) {
+		var f = _g1[_g];
+		++_g;
+		Reflect.setField(o2,f,Reflect.field(o,f));
+	}
+	return o2;
+};
+var Std = function() { };
+Std.__name__ = true;
+Std.string = function(s) {
+	return js_Boot.__string_rec(s,"");
+};
+Std["int"] = function(x) {
+	return x | 0;
+};
+var StringBuf = function() {
+	this.b = "";
+};
+StringBuf.__name__ = true;
+StringBuf.prototype = {
+	add: function(x) {
+		this.b += Std.string(x);
+	}
+	,addSub: function(s,pos,len) {
+		if(len == null) this.b += HxOverrides.substr(s,pos,null); else this.b += HxOverrides.substr(s,pos,len);
+	}
+};
+var StringTools = function() { };
+StringTools.__name__ = true;
+StringTools.lpad = function(s,c,l) {
+	if(c.length <= 0) return s;
+	while(s.length < l) s = c + s;
+	return s;
+};
+var chat_Action = { __ename__ : true, __constructs__ : ["Init","ConnectionFormInput","Connect","MqttInfoResponse","ResponseError","Connected","PostArrived","PostFormInput","Post"] };
+chat_Action.Init = ["Init",0];
+chat_Action.Init.toString = $estr;
+chat_Action.Init.__enum__ = chat_Action;
+chat_Action.ConnectionFormInput = function(f) { var $x = ["ConnectionFormInput",1,f]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
+chat_Action.Connect = ["Connect",2];
 chat_Action.Connect.toString = $estr;
 chat_Action.Connect.__enum__ = chat_Action;
-chat_Action.MqttInfoResponse = function(info) { var $x = ["MqttInfoResponse",2,info]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
-chat_Action.ResponseError = function(err) { var $x = ["ResponseError",3,err]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
-chat_Action.Connected = ["Connected",4];
+chat_Action.MqttInfoResponse = function(info) { var $x = ["MqttInfoResponse",3,info]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
+chat_Action.ResponseError = function(err) { var $x = ["ResponseError",4,err]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
+chat_Action.Connected = ["Connected",5];
 chat_Action.Connected.toString = $estr;
 chat_Action.Connected.__enum__ = chat_Action;
-chat_Action.PostArrived = function(post) { var $x = ["PostArrived",5,post]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
-chat_Action.PostFormInput = function(f) { var $x = ["PostFormInput",6,f]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
-chat_Action.Post = function(time) { var $x = ["Post",7,time]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
+chat_Action.PostArrived = function(post) { var $x = ["PostArrived",6,post]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
+chat_Action.PostFormInput = function(f) { var $x = ["PostFormInput",7,f]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
+chat_Action.Post = function(time) { var $x = ["Post",8,time]; $x.__enum__ = chat_Action; $x.toString = $estr; return $x; };
 var chat_Task = { __ename__ : true, __constructs__ : ["RequestMqtt","MqttConnect","MqttSend"] };
 chat_Task.RequestMqtt = ["RequestMqtt",0];
 chat_Task.RequestMqtt.toString = $estr;
@@ -24,11 +177,11 @@ var chat_Main = function() { };
 chat_Main.__name__ = true;
 chat_Main.main = function() {
 	var app = lib_elm_App.create({ model : chat_Models.init(), update : chat_Update.update, view : chat_View.view});
-	app.main().stream().assign(function(html) {
-	});
+	lib_elm_App.renderToBody(app.main());
 	app.task().stream().assign(function(task) {
 		chat_Tasks.exec(app.address(),task);
 	});
+	app.address().send(chat_Action.Init);
 };
 var chat_Model = { __ename__ : true, __constructs__ : ["NotConnected","Connecting","Connected"] };
 chat_Model.NotConnected = function(state) { var $x = ["NotConnected",0,state]; $x.__enum__ = chat_Model; $x.toString = $estr; return $x; };
@@ -46,13 +199,170 @@ chat_Tasks.exec = function(address,task) {
 var chat_Update = function() { };
 chat_Update.__name__ = true;
 chat_Update.update = function(action,model) {
-	return { model : model, tasks : []};
+	{
+		var _g_model = model;
+		var _g_action = action;
+		switch(_g_model[1]) {
+		case 0:
+			switch(_g_action[1]) {
+			case 1:
+				var state = _g_model[2];
+				var f = _g_action[2];
+				var next = chat_Model.NotConnected(lib_Util.copy(state,function(state1) {
+					state1.form = f(state1.form);
+				}));
+				return chat_Update.result(next,[]);
+			case 2:
+				var state2 = _g_model[2];
+				switch(_g_model[2].form.name) {
+				case "":
+					return chat_Update.result(model,[]);
+				default:
+					var next1 = chat_Model.Connecting({ name : state2.form.name});
+					return chat_Update.result(next1,[chat_Task.RequestMqtt]);
+				}
+				break;
+			default:
+				return chat_Update.result(model,[]);
+			}
+			break;
+		case 1:
+			switch(_g_action[1]) {
+			case 4:
+				var next2 = chat_Model.NotConnected({ form : { name : ""}});
+				return chat_Update.result(next2,[]);
+			case 3:
+				var state3 = _g_model[2];
+				var info = _g_action[2];
+				var next3 = chat_Model.Connected({ name : state3.name, form : { content : ""}, posts : []});
+				return chat_Update.result(next3,[]);
+			default:
+				return chat_Update.result(model,[]);
+			}
+			break;
+		case 2:
+			switch(_g_action[1]) {
+			case 7:
+				var state4 = _g_model[2];
+				var f1 = _g_action[2];
+				var next4 = chat_Model.Connected(lib_Util.copy(state4,function(state5) {
+					state5.form = f1(state5.form);
+				}));
+				return chat_Update.result(next4,[]);
+			case 8:
+				var state6 = _g_model[2];
+				switch(_g_model[2].form.content) {
+				case "":
+					return chat_Update.result(model,[]);
+				default:
+					var time = _g_action[2];
+					var next5 = chat_Model.Connected(lib_Util.copy(state6,function(state7) {
+						state7.form.content = "";
+					}));
+					var post = { user : state6.name, time : time, content : state6.form.content};
+					return chat_Update.result(next5,[chat_Task.MqttSend(post)]);
+				}
+				break;
+			case 6:
+				var state8 = _g_model[2];
+				var post1 = _g_action[2];
+				var next6 = chat_Model.Connected(lib_Util.copy(state8,function(state9) {
+					state9.posts.unshift(post1);
+				}));
+				return chat_Update.result(next6,[]);
+			default:
+				return chat_Update.result(model,[]);
+			}
+			break;
+		}
+	}
+};
+chat_Update.result = function(next,tasks) {
+	return { model : next, tasks : tasks};
+};
+var lib_VirtualDoms = function() { };
+lib_VirtualDoms.__name__ = true;
+lib_VirtualDoms.instance = function() {
+	return window.virtualDom;
 };
 var chat_View = function() { };
 chat_View.__name__ = true;
 chat_View.view = function(address,model) {
-	return "hello";
+	var nav = chat_View.d.h("nav.navbar.navbar-default",[chat_View.d.h("div.container-fluid",[chat_View.d.h("div.navbar-header",[chat_View.d.h("a.navbar-brand",{ href : "chat.html"},"Chat Sample")])])]);
+	var children;
+	switch(model[1]) {
+	case 0:
+		var state = model[2];
+		children = [chat_View.d.h("div.row",[chat_View.userInput(address,state)])];
+		break;
+	case 1:
+		children = [chat_View.d.h("div.row",["接続中..."])];
+		break;
+	case 2:
+		var c = model[2];
+		children = [chat_View.d.h("div.row",{ style : { padding : "0 20px 10px 0"}},[chat_View.showUser(c.name)]),chat_View.d.h("div.row",{ style : { padding : "10px"}},[chat_View.postForm(address,c)]),chat_View.d.h("div.row",{ style : { padding : "10px"}},[chat_View.postList(c.posts)])];
+		break;
+	}
+	var content = chat_View.d.h("div.container",[children]);
+	return chat_View.d.h("div",[nav,content]);
 };
+chat_View.userInput = function(address,state) {
+	return chat_View.singleForm(address,state.form.name,"名前","接続",function(value) {
+		return chat_Action.ConnectionFormInput(function(form) {
+			return { name : value};
+		});
+	},function(_) {
+		return chat_Action.Connect;
+	});
+};
+chat_View.showUser = function(user) {
+	return chat_View.d.h("div",{ style : { textAlign : "center"}},["user: " + user]);
+};
+chat_View.postForm = function(address,state) {
+	return chat_View.singleForm(address,state.form.content,"メッセージ","送信",function(value) {
+		return chat_Action.PostFormInput(function(form) {
+			return { content : value};
+		});
+	},function(e) {
+		return chat_Action.Post(e.timeStamp);
+	});
+};
+chat_View.postList = function(posts) {
+	var head = chat_View.d.h("thead",[chat_View.d.h("th",{ style : { width : "200px"}},["送信者"]),chat_View.d.h("th",{ style : { width : "auto"}},["メッセージ"]),chat_View.d.h("th",{ style : { width : "200px"}},["時刻"])]);
+	var toTr = function(post) {
+		return chat_View.d.h("tr",[chat_View.d.h("td",[post.user]),chat_View.d.h("td",[post.content]),chat_View.d.h("td",[chat_View.timeToString(post.time)])]);
+	};
+	var body = chat_View.d.h("tbody",posts.map(toTr));
+	return chat_View.d.h("table",[head,body]);
+};
+chat_View.timeToString = function(time) {
+	return DateTools.format((function($this) {
+		var $r;
+		var d = new Date();
+		d.setTime(time);
+		$r = d;
+		return $r;
+	}(this)),"%Y/%m/%d %H:%M:%S");
+};
+chat_View.singleForm = function(address,value,placeholder,buttonText,onInput,onClick) {
+	var input = chat_View.d.h("div",{ style : { flex : 1, padding : "0 5px"}},[chat_View.d.h("input.form-control",{ value : value, placeholder : placeholder, oninput : function(e) {
+		address.send(onInput(e.target.value));
+	}},[])]);
+	var button = chat_View.d.h("div",{ style : { width : "100px", padding : "0 5px", textAlign : "center"}},[chat_View.d.h("button.btn.btn-success",{ style : { display : "block", width : "100%"}, onclick : function(e1) {
+		address.send(onClick(e1));
+	}},[buttonText])]);
+	return chat_View.d.h("div",{ style : { display : "flex"}},[input,button]);
+};
+var js__$Boot_HaxeError = function(val) {
+	Error.call(this);
+	this.val = val;
+	this.message = String(val);
+	if(Error.captureStackTrace) Error.captureStackTrace(this,js__$Boot_HaxeError);
+};
+js__$Boot_HaxeError.__name__ = true;
+js__$Boot_HaxeError.__super__ = Error;
+js__$Boot_HaxeError.prototype = $extend(Error.prototype,{
+});
 var js_Boot = function() { };
 js_Boot.__name__ = true;
 js_Boot.__string_rec = function(o,s) {
@@ -91,6 +401,7 @@ js_Boot.__string_rec = function(o,s) {
 		try {
 			tostr = o.toString;
 		} catch( e ) {
+			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			return "???";
 		}
 		if(tostr != null && tostr != Object.toString && typeof(tostr) == "function") {
@@ -128,6 +439,13 @@ lib_Bacons.bus = function() {
 	var bacon = lib_Bacons.Bacon;
 	return new bacon.Bus();
 };
+var lib_Util = function() { };
+lib_Util.__name__ = true;
+lib_Util.copy = function(x,modify) {
+	var ret = Reflect.copy(x);
+	modify(ret);
+	return ret;
+};
 var lib_elm_App = function(main,address,task) {
 	this.main_ = main;
 	this.address_ = address;
@@ -151,6 +469,22 @@ lib_elm_App.create = function(option) {
 		return option.view(actions.address(),m);
 	}));
 	return new lib_elm_App(main,actions.address(),task);
+};
+lib_elm_App.renderToBody = function(main) {
+	var d = lib_VirtualDoms.instance();
+	var root = null;
+	var prev = null;
+	main.stream().assign(function(html) {
+		if(root == null) {
+			root = d.create(html);
+			window.document.body.appendChild(root);
+			prev = html;
+			return;
+		}
+		var ps = d.diff(prev,html);
+		root = d.patch(root,ps);
+		prev = html;
+	});
 };
 lib_elm_App.prototype = {
 	main: function() {
@@ -217,6 +551,18 @@ lib_elm_Mailbox.prototype = {
 };
 String.__name__ = true;
 Array.__name__ = true;
+Date.__name__ = ["Date"];
+if(Array.prototype.map == null) Array.prototype.map = function(f) {
+	var a = [];
+	var _g1 = 0;
+	var _g = this.length;
+	while(_g1 < _g) {
+		var i = _g1++;
+		a[i] = f(this[i]);
+	}
+	return a;
+};
+chat_View.d = lib_VirtualDoms.instance();
 lib_Bacons.Bacon = window.Bacon;
 chat_Main.main();
 })(typeof console != "undefined" ? console : {log:function(){}});
