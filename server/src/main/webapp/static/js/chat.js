@@ -160,35 +160,24 @@ chat_Models.init = function() {
 	return chat_Model.NotConnected({ form : { name : ""}});
 };
 var chat_TaskExecutor = function() {
-	this.mqtt = null;
 };
 chat_TaskExecutor.__name__ = true;
 chat_TaskExecutor.prototype = {
 	exec: function(address,task) {
-		var _g = this;
 		switch(task[1]) {
 		case 0:
-			lib_Util.ajax({ method : "GET", url : "/api/mqtt", success : function(info) {
-				address.send(chat_Action.MqttInfoResponse(info));
-			}, error : function(e) {
-				address.send(chat_Action.ResponseError(e));
-			}});
+			var info = { };
+			address.send(chat_Action.MqttInfoResponse(info));
 			break;
 		case 1:
 			var info1 = task[2];
-			lib_MqttClient.connect(info1,function(client) {
-				_g.mqtt = client;
-				client.subscribe("/chat",function() {
-					address.send(chat_Action.Connected);
-				});
-			},function(message) {
-				var post = JSON.parse(message);
-				address.send(chat_Action.PostArrived(post));
-			});
+			haxe_Timer.delay(function() {
+				address.send(chat_Action.Connected);
+			},1000);
 			break;
 		case 2:
-			var post1 = task[2];
-			if(this.mqtt != null) this.mqtt.send("/chat",JSON.stringify(post1));
+			var post = task[2];
+			address.send(chat_Action.PostArrived(post));
 			break;
 		}
 	}
@@ -344,6 +333,30 @@ chat_View.singleForm = function(address,value,placeholder,buttonText,onInput,onC
 		address.send(onClick(e1));
 	}},[buttonText])]);
 	return chat_View.d.h("div",{ style : { display : "flex"}},[input,button]);
+};
+var haxe_Timer = function(time_ms) {
+	var me = this;
+	this.id = setInterval(function() {
+		me.run();
+	},time_ms);
+};
+haxe_Timer.__name__ = true;
+haxe_Timer.delay = function(f,time_ms) {
+	var t = new haxe_Timer(time_ms);
+	t.run = function() {
+		t.stop();
+		f();
+	};
+	return t;
+};
+haxe_Timer.prototype = {
+	stop: function() {
+		if(this.id == null) return;
+		clearInterval(this.id);
+		this.id = null;
+	}
+	,run: function() {
+	}
 };
 var js__$Boot_HaxeError = function(val) {
 	Error.call(this);
