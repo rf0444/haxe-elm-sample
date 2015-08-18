@@ -11,10 +11,11 @@ import chat.View;
 
 class Main {
 	public static function main() {
+		var view = new View(js.Browser.document.querySelector("body > template"));
 		var app = App.create({
 			model: Models.init(),
 			update: Update.update,
-			view: View.view
+			view: view.view
 		});
 		App.renderToBody(app.main());
 		var exec = new TaskExecutor();

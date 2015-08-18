@@ -142,7 +142,8 @@ chat_Task.MqttSend = function(post) { var $x = ["MqttSend",2,post]; $x.__enum__ 
 var chat_Main = function() { };
 chat_Main.__name__ = true;
 chat_Main.main = function() {
-	var app = lib_elm_App.create({ model : chat_Models.init(), update : chat_Update.update, view : chat_View.view});
+	var view = new chat_View(window.document.querySelector("body > template"));
+	var app = lib_elm_App.create({ model : chat_Models.init(), update : chat_Update.update, view : $bind(view,view.view)});
 	lib_elm_App.renderToBody(app.main());
 	var exec = new chat_TaskExecutor();
 	app.task().stream().assign(function(task) {
@@ -261,61 +262,41 @@ chat_Update.update = function(action,model) {
 chat_Update.result = function(next,tasks) {
 	return { model : next, tasks : tasks};
 };
+var chat_State = { __ename__ : true, __constructs__ : ["None","Post"] };
+chat_State.None = ["None",0];
+chat_State.None.toString = $estr;
+chat_State.None.__enum__ = chat_State;
+chat_State.Post = function(post) { var $x = ["Post",1,post]; $x.__enum__ = chat_State; $x.toString = $estr; return $x; };
 var lib_VirtualDoms = function() { };
 lib_VirtualDoms.__name__ = true;
 lib_VirtualDoms.instance = function() {
 	return window.virtualDom;
 };
-var chat_View = function() { };
-chat_View.__name__ = true;
-chat_View.view = function(address,model) {
-	var nav = chat_View.d.h("nav.navbar.navbar-default",[chat_View.d.h("div.container-fluid",[chat_View.d.h("div.navbar-header",[chat_View.d.h("a.navbar-brand",{ href : "chat.html"},"Chat Sample")])])]);
-	var children;
-	switch(model[1]) {
-	case 0:
-		var state = model[2];
-		children = [chat_View.d.h("div.row",[chat_View.userInput(address,state)])];
-		break;
-	case 1:
-		children = [chat_View.d.h("div.row",["接続中..."])];
-		break;
-	case 2:
-		var c = model[2];
-		children = [chat_View.d.h("div.row",{ style : { padding : "0 20px 10px 0"}},[chat_View.showUser(c.name)]),chat_View.d.h("div.row",{ style : { padding : "10px"}},[chat_View.postForm(address,c)]),chat_View.d.h("div.row",{ style : { padding : "10px"}},[chat_View.postList(c.posts)])];
-		break;
+lib_VirtualDoms.fromHtml = function(html) {
+	return window.vdomVirtualize.fromHTML(html);
+};
+lib_VirtualDoms.text = function(str) {
+	var d = lib_VirtualDoms.instance();
+	return d.h("",[str]).children[0];
+};
+lib_VirtualDoms.copy = function(dom,properties,children) {
+	var d = lib_VirtualDoms.instance();
+	var _g = dom.type;
+	switch(_g) {
+	case "VirtualText":
+		return lib_VirtualDoms.text(dom.text);
+	default:
+		var p;
+		if(properties == null) p = dom.properties; else p = properties;
+		var c;
+		if(children == null) c = dom.children; else c = children;
+		return d.h(dom.tagName,p,c);
 	}
-	var content = chat_View.d.h("div.container",[children]);
-	return chat_View.d.h("div",[nav,content]);
 };
-chat_View.userInput = function(address,state) {
-	return chat_View.singleForm(address,state.form.name,"名前","接続",function(value) {
-		return chat_Action.ConnectionFormInput(function(form) {
-			return { name : value};
-		});
-	},function(_) {
-		return chat_Action.Connect;
-	});
+var chat_View = function(template) {
+	this.tdom = lib_VirtualDoms.fromHtml("<div>" + template.innerHTML + "</div>");
 };
-chat_View.showUser = function(user) {
-	return chat_View.d.h("div",{ style : { textAlign : "right"}},["user: " + user]);
-};
-chat_View.postForm = function(address,state) {
-	return chat_View.singleForm(address,state.form.content,"メッセージ","送信",function(value) {
-		return chat_Action.PostFormInput(function(form) {
-			return { content : value};
-		});
-	},function(e) {
-		return chat_Action.Post(e.timeStamp);
-	});
-};
-chat_View.postList = function(posts) {
-	var head = chat_View.d.h("thead",[chat_View.d.h("th",{ style : { width : "200px"}},["送信者"]),chat_View.d.h("th",{ style : { width : "auto"}},["メッセージ"]),chat_View.d.h("th",{ style : { width : "200px"}},["時刻"])]);
-	var toTr = function(post) {
-		return chat_View.d.h("tr",[chat_View.d.h("td",[post.user]),chat_View.d.h("td",[post.content]),chat_View.d.h("td",[chat_View.timeToString(post.time)])]);
-	};
-	var body = chat_View.d.h("tbody",posts.map(toTr));
-	return chat_View.d.h("table.table",[head,body]);
-};
+chat_View.__name__ = true;
 chat_View.timeToString = function(time) {
 	return DateTools.format((function($this) {
 		var $r;
@@ -325,14 +306,213 @@ chat_View.timeToString = function(time) {
 		return $r;
 	}(this)),"%Y/%m/%d %H:%M:%S");
 };
-chat_View.singleForm = function(address,value,placeholder,buttonText,onInput,onClick) {
-	var input = chat_View.d.h("div",{ style : { flex : 1, padding : "0 5px"}},[chat_View.d.h("input.form-control",{ value : value, placeholder : placeholder, oninput : function(e) {
-		address.send(onInput(e.target.value));
-	}},[])]);
-	var button = chat_View.d.h("div",{ style : { width : "100px", padding : "0 5px", textAlign : "center"}},[chat_View.d.h("button.btn.btn-success",{ style : { display : "block", width : "100%"}, onclick : function(e1) {
-		address.send(onClick(e1));
-	}},[buttonText])]);
-	return chat_View.d.h("div",{ style : { display : "flex"}},[input,button]);
+chat_View.prototype = {
+	view: function(address,model) {
+		return this.traverse(this.tdom,model,chat_State.None,address)[0];
+	}
+	,traverse: function(dom,model,state,address) {
+		var _g1 = this;
+		if(dom.properties == null || dom.properties.dataset == null) return this.withChildren(dom,{ },model,state,address);
+		var binds = dom.properties.dataset;
+		var show;
+		{
+			var _g = binds.state;
+			if(_g == null) show = true; else switch(_g) {
+			case "NotConnected":
+				switch(model[1]) {
+				case 0:
+					var s = model[2];
+					show = true;
+					break;
+				default:
+					show = false;
+				}
+				break;
+			case "Connecting":
+				switch(model[1]) {
+				case 1:
+					var s1 = model[2];
+					show = true;
+					break;
+				default:
+					show = false;
+				}
+				break;
+			case "Connected":
+				switch(model[1]) {
+				case 2:
+					var s2 = model[2];
+					show = true;
+					break;
+				default:
+					show = false;
+				}
+				break;
+			default:
+				show = false;
+			}
+		}
+		if(!show) return [];
+		var rows;
+		{
+			var _g2 = binds.rows;
+			if(_g2 != null) switch(_g2) {
+			case "posts":
+				switch(model[1]) {
+				case 2:
+					switch(state[1]) {
+					case 0:
+						var s3 = model[2];
+						rows = s3.posts.map(function(p) {
+							return _g1.traverse(dom,model,chat_State.Post(p),address);
+						});
+						break;
+					default:
+						rows = null;
+					}
+					break;
+				default:
+					rows = null;
+				}
+				break;
+			default:
+				rows = null;
+			} else rows = null;
+		}
+		if(rows != null) return lib_Util.flatten(rows);
+		var ext = { properties : lib_Util.copy(dom.properties,{ })};
+		{
+			var _g3 = binds.input;
+			if(_g3 != null) switch(_g3) {
+			case "user.name":
+				switch(model[1]) {
+				case 0:
+					var s4 = model[2];
+					ext.properties.value = s4.form.name;
+					ext.properties.oninput = function(e) {
+						var value = e.target.value;
+						var f = function(form) {
+							return { name : value};
+						};
+						address.send(chat_Action.ConnectionFormInput(f));
+					};
+					break;
+				default:
+				}
+				break;
+			case "post.content":
+				switch(model[1]) {
+				case 2:
+					var s5 = model[2];
+					ext.properties.value = s5.form.content;
+					ext.properties.oninput = function(e1) {
+						var value1 = e1.target.value;
+						var f1 = function(form1) {
+							return { content : value1};
+						};
+						address.send(chat_Action.PostFormInput(f1));
+					};
+					break;
+				default:
+				}
+				break;
+			default:
+			} else {
+			}
+		}
+		var _g4 = binds.click;
+		if(_g4 != null) switch(_g4) {
+		case "connect":
+			ext.properties.onclick = function(e2) {
+				address.send(chat_Action.Connect);
+			};
+			break;
+		case "post":
+			ext.properties.onclick = function(e3) {
+				address.send(chat_Action.Post(e3.timeStamp));
+			};
+			break;
+		default:
+		} else {
+		}
+		var text;
+		{
+			var _g5 = binds.text;
+			if(_g5 != null) switch(_g5) {
+			case "user":
+				switch(model[1]) {
+				case 2:
+					var s6 = model[2];
+					text = "user: " + s6.name;
+					break;
+				default:
+					text = null;
+				}
+				break;
+			case "post.user":
+				switch(model[1]) {
+				case 2:
+					switch(state[1]) {
+					case 1:
+						var p1 = state[2];
+						text = p1.user;
+						break;
+					default:
+						text = null;
+					}
+					break;
+				default:
+					text = null;
+				}
+				break;
+			case "post.content":
+				switch(model[1]) {
+				case 2:
+					switch(state[1]) {
+					case 1:
+						var p2 = state[2];
+						text = p2.content;
+						break;
+					default:
+						text = null;
+					}
+					break;
+				default:
+					text = null;
+				}
+				break;
+			case "post.time":
+				switch(model[1]) {
+				case 2:
+					switch(state[1]) {
+					case 1:
+						var p3 = state[2];
+						text = chat_View.timeToString(p3.time);
+						break;
+					default:
+						text = null;
+					}
+					break;
+				default:
+					text = null;
+				}
+				break;
+			default:
+				text = null;
+			} else text = null;
+		}
+		if(text != null) ext.children = [lib_VirtualDoms.text(text)];
+		return this.withChildren(dom,ext,model,state,address);
+	}
+	,withChildren: function(dom,ext,model,state,address) {
+		var _g = this;
+		if(dom.children == null) return [lib_VirtualDoms.copy(dom,lib_Util.copy(dom.properties,ext.properties))];
+		if(ext.children != null) return [lib_VirtualDoms.copy(dom,lib_Util.copy(dom.properties,ext.properties),ext.children)];
+		var children = lib_Util.flatten(dom.children.map(function(child) {
+			return _g.traverse(child,model,state,address);
+		}));
+		return [lib_VirtualDoms.copy(dom,lib_Util.copy(dom.properties,ext.properties),children)];
+	}
 };
 var haxe_Timer = function(time_ms) {
 	var me = this;
@@ -489,8 +669,10 @@ lib_Util.ajax = function(option) {
 	jq.ajax(option);
 };
 lib_Util.cons = function(a,b) {
-	var f = function(a, b) { return Array.prototype.concat(a, b); }
-	return f(a,b);
+	return Array.prototype.concat(a, b);
+};
+lib_Util.flatten = function(xss) {
+	return Array.prototype.concat.apply([], xss);
 };
 var lib_elm_App = function(main,address,task) {
 	this.main_ = main;
@@ -595,6 +777,8 @@ lib_elm_Mailbox.prototype = {
 		return this.address_;
 	}
 };
+var $_, $fid = 0;
+function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; }
 String.__name__ = true;
 Array.__name__ = true;
 Date.__name__ = ["Date"];

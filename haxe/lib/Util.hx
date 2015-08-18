@@ -10,7 +10,9 @@ class Util {
 		jq.ajax(option);
 	}
 	public static function cons<T>(a: T, b: Array<T>): Array<T> {
-		var f: T -> Array<T> -> Array<T> = untyped __js__("function(a, b) { return Array.prototype.concat(a, b); }");
-		return f(a, b);
+		return untyped __js__("Array.prototype.concat({0}, {1})", a, b);
+	}
+	public static function flatten<T>(xss: Array<Array<T>>): Array<T> {
+		return untyped __js__("Array.prototype.concat.apply([], {0})", xss);
 	}
 }

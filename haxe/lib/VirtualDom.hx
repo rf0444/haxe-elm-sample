@@ -12,4 +12,21 @@ class VirtualDoms {
 	public static function instance(): VirtualDom {
 		return untyped __js__("window.virtualDom");
 	}
+	public static function fromHtml(html: String): Dynamic {
+		return untyped __js__("window.vdomVirtualize.fromHTML({0})", html);
+	}
+	public static function text(str: String): Dynamic {
+		var d = instance();
+		return d.h("", [ str ]).children[0];
+	}
+	public static function copy(dom: Dynamic, ?properties: Dynamic, ?children: Array<Dynamic>): Dynamic {
+		var d = instance();
+		return switch (dom.type) {
+			case "VirtualText": text(dom.text);
+			case _:
+				var p = if (properties == null) dom.properties else properties;
+				var c = if (children == null) dom.children else children;
+				d.h(dom.tagName, p, c);
+		};
+	}
 }
